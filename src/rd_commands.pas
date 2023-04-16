@@ -199,7 +199,15 @@ type
      *)
     function send_command2(const command : String) : TRedisReturnType;
                                                               overload; virtual;
-
+    function appendValue(const key: string; const Value: string): TRedisReturnType;
+    function setValue(const key: string; const Value: string): TRedisReturnType; overload; virtual;
+    function setValue(const key: string; const Value: string; const expireSeconds: integer): TRedisReturnType; overload; virtual;
+    function getValue(const key: string): TRedisReturnType;
+    function setExpire(const key: string; const expireSeconds: integer):boolean;
+    function exists(const key: string): boolean;
+    function delete(const key: string): integer;
+    function getValueLength(const key: string): Integer;
+    function getValidTime(const key: string): Integer;
     property Socket : TTCPBlockSocket read GetSocket;
   published
     // The string for boolean false value
@@ -1688,6 +1696,84 @@ function TRedisAbstractCommands.send_command2(const command: String): TRedisRetu
 begin
   Result := send_command2(command, []);
 end;
+function TRedisAbstractCommands.setValue(const key: string; const Value: string): TRedisReturnType;
+begin
+  Result := send_command2('SET', [key, Value]);
+end;
+function TRedisAbstractCommands.appendValue(const key: string; const Value: string): TRedisReturnType;
+begin
+    Result := send_command2('APPEND', [key, Value]);
+end;
 
+function TRedisAbstractCommands.setValue(const key: string; const Value: string; const expireSeconds: integer): TRedisReturnType;
+begin
+  Result := send_command2('SETEX', [key, expireSeconds, Value]);
+end;
+
+function TRedisAbstractCommands.getValue(const key: string): TRedisReturnType;
+begin
+  Result := send_command2('GET', [key]);
+end;
+function TRedisAbstractCommands.setExpire(const key: string; const expireSeconds: integer):boolean;
+var
+  RedisReturnType: TRedisReturnType;
+begin
+  RedisReturnType := send_command2('EXPIRE', [key,expireSeconds]);
+  if RedisReturnType.ReturnType=TRedisAnswerType.ratNumeric then
+  begin
+    Result:=(RedisReturnType.Value='1');
+  end
+  else begin
+    result:=True;
+    end;
+end;
+
+function TRedisAbstractCommands.exists(const key: string): boolean;
+var
+  RedisReturnType: TRedisReturnType;
+begin
+  RedisReturnType := send_command2('EXISTS', [key]);
+  Result := not (RedisReturnType.ReturnType = TRedisAnswerType.ratNull);
+end;
+
+function TRedisAbstractCommands.delete(const key: string): Integer;
+var
+  RedisReturnType: TRedisReturnType;
+begin
+  RedisReturnType := send_command2('DEL', [key]);
+  if RedisReturnType.ReturnType=TRedisAnswerType.ratNumeric then
+  begin
+    Result:=strtoint(RedisReturnType.Value);
+  end
+  else begin
+    result:=-1;
+    end;
+end;
+function TRedisAbstractCommands.getValueLength(const key: string): Integer;
+var
+  RedisReturnType: TRedisReturnType;
+begin
+  RedisReturnType := send_command2('STRLEN', [key]);
+  if RedisReturnType.ReturnType=TRedisAnswerType.ratNumeric then
+  begin
+    Result:=strtoint(RedisReturnType.Value);
+  end
+  else begin
+    result:=-1;
+    end;
+end;
+function TRedisAbstractCommands.getValidTime(const key: string): Integer;
+var
+  RedisReturnType: TRedisReturnType;
+begin
+  RedisReturnType := send_command2('TTL', [key]);
+  if RedisReturnType.ReturnType=TRedisAnswerType.ratNumeric then
+  begin
+    Result:=strtoint(RedisReturnType.Value);
+  end
+  else begin
+    result:=-1;
+    end;
+end;
 end.
 
